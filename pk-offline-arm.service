@@ -1,0 +1,14 @@
+[Unit]
+Description=Arm PackageKit offline update at shutdown when updates are prepared
+RequiresMountsFor=/var/lib/PackageKit
+After=local-fs.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/bin/true
+ExecStop=/usr/local/libexec/pk-offline-arm
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target

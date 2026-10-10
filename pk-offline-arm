@@ -1,0 +1,27 @@
+#!/bin/sh
+# Arms the PackageKit offline update at shutdown when updates have been prepared
+# but not triggered yet (for example by GNOME Software).
+# Reproduces what `pkcon offline-trigger` does: packagekitd cannot be started
+# while the system is shutting down.
+set -eu
+
+dir=/var/lib/PackageKit
+prepared="$dir/prepared-update"
+
+# Only act during a real system shutdown, not on a plain `systemctl stop`.
+[ "$(systemctl is-system-running 2>/dev/null || true)" = stopping ] || exit 0
+
+# Nothing prepared, or already armed: do nothing.
+grep -q '^prepared_ids=.' "$prepared" 2>/dev/null || exit 0
+[ -L /system-update ] && exit 0
+
+# After installation: shut down if we are powering off, otherwise reboot.
+if systemctl list-jobs --no-legend 2>/dev/null | grep -q 'poweroff\.target'; then
+    action=power-off
+else
+    action=reboot
+fi
+
+printf '%s' "$action" > "$dir/offline-update-action"
+ln -sfn "$prepared" /system-update
+echo "Offline update armed (post-install action: $action)"
